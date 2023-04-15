@@ -74,6 +74,18 @@ class Tree:
 
         return True
 
+    def distance_right(self, node):
+        if not node.arcs_out:
+            return 0
+
+        max_distance = 0
+        for arc in node.arcs_out:
+            arc_distances = self.distance_right(arc.node_to)
+            if arc_distances + 1 > max_distance:
+                max_distance = arc_distances + 1
+
+        return max_distance
+
     def end_nodes(self):
         ending_nodes = []
         for i in self.nodes:
@@ -114,13 +126,42 @@ class Tree:
                     chance_nodes.append(i)
         return chance_nodes
 
-    def expected_values(self):
-        chance_nodes = self.chance_nodes()
-        for i in chance_nodes:
-            value = 0
+    def decision_nodes(self):
+        decision_nodes = []
+        for i in self.nodes:
+            added = False
             for j in i.arcs_out:
-                value = value + j.chance * j.node_to.value
-            i.value = round(value, 3)
+                if (j.chance == None) and (added == False) and (len(i.arcs_out) > 0):
+                    added = True
+                    decision_nodes.append(i)
+        return decision_nodes
+
+    def chance_expected(self, node):
+        value = 0
+        for j in node.arcs_out:
+            value = value + j.chance * j.node_to.value
+        node.value = round(value, 3)
+
+    def decision_choice(self, node):
+        to_max = []
+        for i in node.arcs_out:
+            to_max.append(i.node_to.value)
+        node.value = max(to_max)
+
+    def expected_values(self):
+        for i in range(1, len(self.nodes)):
+            nodes_soon = []
+            for node in self.nodes:
+                if self.distance_right(node) == i:
+                    nodes_soon.append(node)
+
+            for node in nodes_soon:
+                if node in self.chance_nodes():
+                    self.chance_expected(node)
+                elif node in self.decision_nodes():
+                    self.decision_choice(node)
+
+
 
 
 class Node:
